@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    container_name: FarmOS-DB
+    hostname: farmos-db
+    mem_limit: 1g
+    cpu_shares: 1024
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "farmos", "-U", "farmosuser"]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+      - /docker/farmos/db:/var/lib/postgresql/data:rw
+    environment:
+      POSTGRES_DB: farmos
+      POSTGRES_USER: farmosuser
+      POSTGRES_PASSWORD: farmospass
+    restart: on-failure:5
+
+  farmos:
+    image: farmos/farmos:latest
+    container_name: FarmOS
+    hostname: farmos
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - 7917:80
+    volumes:
+      - /docker/farmos/php.ini:/usr/local/etc/php/conf.d/farmos.ini:rw
+      - /docker/farmos/sites:/opt/drupal/web/sites:rw
+    restart: on-failure:5
+    depends_on:
+      db:
+        condition: service_healthy
